@@ -11,12 +11,17 @@ import base64
 # ==========================================
 st.set_page_config(page_title="오늘 뭐 먹지?", page_icon="🍔", layout="centered")
 
-# 스타일 정의
+# 전체 글씨 색상을 연한 갈색(#A37D63)으로 변경하는 CSS 적용
 st.markdown("""
 <style>
-    /* 기본 배경 및 폰트 설정 */
+    /* 기본 배경 설정 */
     .stApp {
         background-color: #F8F9FA;
+    }
+    
+    /* 앱 내 모든 기본 텍스트 및 입력 필드 글씨 색상을 연한 갈색으로 고정 */
+    html, body, [class*="css"], div, span, p, label, h1, h2, h3, h4, h5, h6, input {
+        color: #A37D63 !important;
     }
     
     /* 시작화면 / 결과화면 반투명 연녹색 배경 */
@@ -36,9 +41,9 @@ st.markdown("""
         margin-bottom: 20px;
     }
 
-    /* 제목 스타일 */
+    /* 제목 스타일 (연한 갈색 적용) */
     .title-white {
-        color: #FFFFFF !important;
+        color: #A37D63 !important;
         font-size: 32px !important;
         font-weight: bold;
         text-align: center;
@@ -67,11 +72,11 @@ st.markdown("""
         color: #8C664C !important;
     }
 
-    /* 음식 텍스트 스타일: 버튼 글씨보다 작고 얇게 (검정색) */
+    /* 음식 텍스트 스타일: 연한 갈색 적용 */
     .food-label {
         font-size: 13px !important;
         font-weight: normal !important;
-        color: #000000 !important;
+        color: #A37D63 !important;
         text-align: center;
         margin-top: 4px;
     }
@@ -84,6 +89,11 @@ st.markdown("""
         text-align: center;
         margin-top: 10px;
         margin-bottom: 20px;
+    }
+
+    /* 텍스트 입력창 내부 글자 색상 */
+    .stTextInput input {
+        color: #A37D63 !important;
     }
 
     /* 홈 버튼 정렬 */
@@ -113,7 +123,6 @@ def generate_food_icon(name):
     fig.patch.set_facecolor('#F0F0F0')
     ax.set_facecolor('#FFFFFF')
     
-    # 카테고리별 다채로운 색상으로 도형 그리기
     random.seed(sum(ord(c) for c in name))
     color = "#%06x" % random.randint(0, 0xFFFFFF)
     
@@ -131,7 +140,7 @@ def generate_food_icon(name):
     return buf.getvalue()
 
 def generate_roulette_image(items, selected_item=None):
-    """돌림판 이미지를 matplotlib으로 그리는 함수"""
+    """돌림판 이미지를 matplotlib으로 그리는 함수 (글자색 연갈색 반영)"""
     fig, ax = plt.subplots(figsize=(4, 4))
     n = len(items)
     colors = ['#FFD1DC', '#FAFAD2', '#E0EEE0', '#E6E6FA', '#FFE4E1', '#F0F8FF']
@@ -146,14 +155,13 @@ def generate_roulette_image(items, selected_item=None):
         wedgeprops=dict(width=0.8, edgecolor='w', linewidth=2)
     )
     
-    # 각 섹션에 글자 표시
+    # 돌림판 내부 글씨 색상도 연한 갈색(#A37D63)으로 설정
     for i, p in enumerate(wedges):
         ang = (p.theta2 - p.theta1)/2. + p.theta1
         y = math.sin(math.radians(ang)) * 0.6
         x = math.cos(math.radians(ang)) * 0.6
-        ax.text(x, y, items[i], ha='center', va='center', fontsize=9, color='#000000')
+        ax.text(x, y, items[i], ha='center', va='center', fontsize=9, color='#A37D63', weight='bold')
         
-    # 화살표 표시 (상단 중앙)
     ax.plot(0, 0.95, marker='v', markersize=15, color='#A37D63')
     
     ax.axis('equal')
@@ -176,7 +184,6 @@ if 'custom_foods' not in st.session_state:
 if 'final_result' not in st.session_state:
     st.session_state.final_result = None
 
-# 상단 홈 버튼 표시 함수
 def render_home_button():
     col1, col2 = st.columns([8, 2])
     with col2:
@@ -208,7 +215,7 @@ if st.session_state.page == 'start':
     st.markdown('</div>', unsafe_allow_html=True)
 
 # ------------------------------------------
-# [화면 2] 카테고리 화면 (제거 모드 전용)
+# [화면 2] 카테고리 화면
 # ------------------------------------------
 elif st.session_state.page == 'category':
     render_home_button()
@@ -223,33 +230,30 @@ elif st.session_state.page == 'category':
             st.rerun()
 
 # ------------------------------------------
-# [화면 3] 음식 제거 화면 (제거 모드 전용)
+# [화면 3] 음식 제거 화면
 # ------------------------------------------
 elif st.session_state.page == 'food_select':
     render_home_button()
     
     st.markdown("<p style='text-align: center; color: #A37D63; font-weight: bold;'>마음에 안 드는 메뉴를 눌러서 제거하세요!</p>", unsafe_allow_html=True)
     
-    # 남아있는 음식이 1개일 경우 바로 결과 화면으로
     if len(st.session_state.food_list) == 1:
         st.session_state.final_result = st.session_state.food_list[0]
         st.session_state.page = 'result'
         st.rerun()
 
-    # 4열 그리드로 20개 음식 표시
     cols = st.columns(4)
     for idx, item in enumerate(st.session_state.food_list):
         with cols[idx % 4]:
             img_bytes = generate_food_icon(item)
             st.image(img_bytes, use_container_width=True)
-            # 음식 이름 (버튼 글씨보다 작고 얇게)
             st.markdown(f'<div class="food-label">{item}</div>', unsafe_allow_html=True)
             if st.button("제거", key=f"del_{item}_{idx}"):
                 st.session_state.food_list.remove(item)
                 st.rerun()
 
 # ------------------------------------------
-# [화면 4] 음식 이름 입력 화면 (돌림판 모드 전용)
+# [화면 4] 음식 이름 입력 화면
 # ------------------------------------------
 elif st.session_state.page == 'custom_input':
     render_home_button()
@@ -306,23 +310,19 @@ elif st.session_state.page == 'result':
     result_food = st.session_state.final_result
     st.markdown("<h2 style='color: #A37D63; text-align: center;'>오늘의 추천 음식!</h2>", unsafe_allow_html=True)
     
-    # 음식 사진 표시
     img_bytes = generate_food_icon(result_food)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.image(img_bytes, use_container_width=True)
     
-    # 음식 이름 (사진 밑, 글씨 색깔 연한 갈색, 작고 얇게)
     st.markdown(f'<div class="result-food-label">{result_food}</div>', unsafe_allow_html=True)
     
-    # 시작화면으로 돌아가기 버튼 (무조건 음식이름 밑에 배치)
     if st.button("시작화면으로 돌아가기"):
-        # 세션 초기화
         st.session_state.page = 'start'
         st.session_state.selected_category = None
         st.session_state.food_list = []
         st.session_state.custom_foods = []
         st.session_state.final_result = None
         st.rerun()
+
         
-    st.markdown('</div>', unsafe_allow_html=True)
